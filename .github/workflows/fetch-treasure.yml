@@ -1,0 +1,73 @@
+name: Fetch the Treasure
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  fetch-secret:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # Attempt to fetch the secret message from the instructor's private repo
+      - name: Fetch the treasure
+        env:
+          TREASURE_KEY: ${{ secrets.TREASURE_KEY }}
+        run: |
+          echo "🔐 Attempting to access the private treasure..."
+          echo ""
+          
+          # Try to fetch the secret file
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer $TREASURE_KEY" \
+            "https://raw.githubusercontent.com/iyad-obeid/secret-message/main/treasure.txt")
+          
+          # Split response body and status code
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | sed '$d')
+          
+          if [ "$HTTP_CODE" -eq 200 ]; then
+            echo "✅ SUCCESS! You found the treasure!"
+            echo ""
+            echo "========== SECRET MESSAGE =========="
+            echo "$BODY"
+            echo "===================================="
+            echo ""
+            echo "🎉 Your secret is working correctly!"
+          elif [ "$HTTP_CODE" -eq 401 ]; then
+            echo "❌ UNAUTHORIZED (401)"
+            echo "   Your TREASURE_KEY secret is missing or invalid."
+            echo "   Did you add it in Settings → Secrets → Actions?"
+            exit 1
+          elif [ "$HTTP_CODE" -eq 404 ]; then
+            echo "❌ NOT FOUND (404)"
+            echo "   The treasure repo or file doesn't exist."
+            echo "   Check with your instructor."
+            exit 1
+          else
+            echo "❌ UNEXPECTED ERROR (HTTP $HTTP_CODE)"
+            echo "$BODY"
+            exit 1
+          fi
+      
+      # Show what happens without the secret
+      - name: Try WITHOUT the key (should fail)
+        continue-on-error: true
+        run: |
+          echo "🔓 Attempting access WITHOUT authentication..."
+          echo ""
+          
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://raw.githubusercontent.com/iyad-obeid/secret-message/main/treasure.txt")
+          
+          if [ "$HTTP_CODE" -eq 404 ]; then
+            echo "❌ Access denied! (HTTP $HTTP_CODE)"
+            echo "   Private repos return 404 to unauthenticated requests."
+            echo "   This is expected - the secret key is required!"
+          else
+            echo "Got HTTP $HTTP_CODE"
+          fi
