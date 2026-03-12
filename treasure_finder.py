@@ -7,7 +7,7 @@ def main():
 
     load_dotenv()
     
-    # Read the secret and repository URL from environment variables
+    # Read the secret from the environment variable
     TREASURE_KEY = os.environ.get("TREASURE_KEY")
     REPO_URL = "https://raw.githubusercontent.com/iyad-obeid/secret-message/main/treasure.txt"
 
