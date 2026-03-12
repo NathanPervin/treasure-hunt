@@ -1,4 +1,4 @@
-name: Fetch the Treasure
+name: Fetch the Treasure Using Python
 
 on:
   push:
